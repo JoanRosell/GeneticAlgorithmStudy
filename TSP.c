@@ -33,7 +33,7 @@ typedef struct
 Point Cities[NUM_CITIES];
 
 // Helping structure to account for cities that has been already visited
-int MASK[NUM_CITIES];
+int mask[NUM_CITIES];
 
 Chrom population[POPSIZE];
 Chrom tmp_population[POPSIZE];
@@ -205,15 +205,15 @@ int check_valid(int* IN)
     // clear mask
     for (i = 0; i < NUM_CITIES; i++)
     {
-        MASK[i] = 0;
+        mask[i] = 0;
     }
 
     // check if city has been already visited, otherwise insert city in mask
     for (i = 0; i < NUM_CITIES; i++)
     {
-        if (MASK[IN[i]] == 0)
+        if (mask[IN[i]] == 0)
         {
-            MASK[IN[i]] = 1;
+            mask[IN[i]] = 1;
         }
         else
         {
@@ -241,7 +241,7 @@ void mate(Chrom* P_in, int Nin, Chrom* P_out, int Nout)
         // Clear mask of already visited cities
         for (i = 0; i < NUM_CITIES; i++)
         {
-            MASK[i] = 0;
+            mask[i] = 0;
         }
 
         // Copy first part of input gene i1 to output gene
@@ -254,7 +254,7 @@ void mate(Chrom* P_in, int Nin, Chrom* P_out, int Nout)
         for (i = 0; i < pos; i++)
         {
             city = P_out[m].gen[i];
-            MASK[city] = 1;
+            mask[city] = 1;
         }
 
         // copy cities in input gene i2 to last part of output gene,
@@ -267,9 +267,9 @@ void mate(Chrom* P_in, int Nin, Chrom* P_out, int Nout)
             {
                 city = P_in[i2].gen[j];
                 j++;
-            } while (MASK[city] == 1);
+            } while (mask[city] == 1);
 
-            MASK[city] = 1;                     // mark city as seen
+            mask[city] = 1;                     // mark city as seen
             P_out[m].gen[i] = city;             // copy city to output gene
         }
     }
