@@ -30,7 +30,7 @@ typedef struct
 } Chrom;
 
 // Array containing the positions of the cities
-Point Cities[NUM_CITIES];
+Point cities[NUM_CITIES];
 
 // Helping structure to account for cities that has been already visited
 int mask[NUM_CITIES];
@@ -58,8 +58,8 @@ void generate_cities()
 {
     for (int i = 0; i < NUM_CITIES; i++)
     {
-        Cities[i].x = myRandom() % 4096;
-        Cities[i].y = myRandom() % 4096;
+        cities[i].x = myRandom() % 4096;
+        cities[i].y = myRandom() % 4096;
     }
 }
 
@@ -71,9 +71,9 @@ float compute_path_distance(int* path)
 
     for (int i = 1; i < NUM_CITIES; i++)
     {
-        dist = dist + distance(Cities[path[i - 1]], Cities[path[i]]);
+        dist = dist + distance(cities[path[i - 1]], cities[path[i]]);
     }
-    return(dist + distance(Cities[path[NUM_CITIES - 1]], Cities[path[0]]));
+    return(dist + distance(cities[path[NUM_CITIES - 1]], cities[path[0]]));
 }
 
 // Display path into screen
@@ -85,10 +85,10 @@ void print_path(int* path)
     for (i = 1; i < NUM_CITIES; i++)
     {
         printf("%d,", path[i - 1]);
-        dist = dist + distance(Cities[path[i - 1]], Cities[path[i]]);
+        dist = dist + distance(cities[path[i - 1]], cities[path[i]]);
     }
     printf("%d\nTotal Distance: %f\n", path[i - 1],
-           dist + distance(Cities[path[i - 1]], Cities[path[0]]));
+           dist + distance(cities[path[i - 1]], cities[path[0]]));
 }
 
 // Initialize a population of N Chromosomes
@@ -338,7 +338,7 @@ int main(int argc, char** argv)
             // sanity check
             if (!check_valid(population[0].gen))
             {
-                printf("ERROR: gen is not a valid permutation of Cities");
+                printf("ERROR: gen is not a valid permutation of cities");
                 exit(1);
             }
         }
@@ -349,7 +349,7 @@ int main(int argc, char** argv)
     // sanity check
     if (!check_valid(population[0].gen))
     {
-        printf("ERROR: gen is not a valid permutation of Cities");
+        printf("ERROR: gen is not a valid permutation of cities");
         exit(1);
     }
 
