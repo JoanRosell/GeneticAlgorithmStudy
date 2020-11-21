@@ -1,7 +1,6 @@
 #!/bin/bash -l
 #SBATCH --exclusive
-#SBATCH -p cuda.q
-#SBATCH -w aolin24
+#SBATCH -p aolin.q
 
 hostname
 echo
