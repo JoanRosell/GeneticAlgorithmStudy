@@ -16,11 +16,13 @@ p1=$2
 p2=$3
 
 # Submit the job script
-sbatch -o $filename.out -e $filename.err job.sh $filename $p1 $p2
+sbatch -o $filename.out -e $filename.err --wait job.sh $filename $p1 $p2
+
+# Move output files and error files to their respective directories
+mv *.out out/
+mv *.data out/
+mv *.err err/
+mv *.exe bin/
 
 # Delete empty error files
 find -type f -name '*.err' -empty -delete
-
-# Move output files and error files to output directory
-mv *.out out/
-mv *.err out/
