@@ -1,16 +1,26 @@
 #!/bin/bash -l
-#SBATCH --exclusive
-#SBATCH -p aolin.q
+# submit.h
+#
+# Description:
+#   This script submits a batch job to a SLURM cluster.
+#   The job script is defined in job.sh
+#
 # Parameters:
-#   $1 Epochs
-#   $2 seed
+#   $1: Output filename
+#   $2: First job parameter
+#   $3: Second job parameter
 
-hostname
-echo
+# Read parameters
+filename=$1
+p1=$2
+p2=$3
 
-# Exports
-module add gcc/9.2.0
-gcc -Ofast TSP.c -o TSP
+# Submit the job script
+sbatch -o $filename.out -e $filename.err job.sh $filename $p1 $p2
 
-perf stat -d TSP $1 $2 2>&1
-perf record TSP $1 $2 2>&1
+# Delete empty error files
+find -type f -name '*.err' -empty -delete
+
+# Move output files and error files to output directory
+mv *.out out/
+mv *.err out/
