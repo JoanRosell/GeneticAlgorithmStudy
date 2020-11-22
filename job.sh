@@ -14,7 +14,7 @@ epochs=$2
 seed=$3
 
 # Compile
-gcc -Ofast TSP.c -o $filename.exe
+gcc -Ofast TSP.c -o $filename
 
-perf stat -d $filename.exe $epochs $seed 2>&1
-perf record -o $filename.data $filename.exe $epochs $seed 2>&1
+perf stat -d $filename $epochs $seed 2>&1
+perf record -o $filename.data $filename $epochs $seed 2>&1
