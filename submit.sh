@@ -18,5 +18,9 @@ p2=$3
 # Submit the job script
 sbatch -o $filename.out -e $filename.err --wait job.sh $filename $p1 $p2
 
+mv *.out out/
+mv *.data out/
+mv *.err err/
+
 # Delete empty error files
 find -type f -name '*.err' -empty -delete
