@@ -58,7 +58,7 @@ void print_path(int* path);
 
 int main(int argc, char** argv)
 {
-    int i, R, EPOCHS = 500;
+    int i, EPOCHS = 500;
 
     seed = 12345;
 
@@ -75,8 +75,8 @@ int main(int argc, char** argv)
     printf("Find shortest path for %d cities. %d Epochs. population Size: %d\n",
            NUM_CITIES, EPOCHS, POPSIZE);
 
-    printf("Size of Chrom %d\n", sizeof(Chrom));
-    printf("Size of Point %d\n", sizeof(Point));
+    printf("Size of Chrom %lu\n", sizeof(Chrom));
+    printf("Size of Point %lu\n", sizeof(Point));
     // generate random cities and initialize genetic population
     generate_cities();
     init_population(population, POPSIZE);
