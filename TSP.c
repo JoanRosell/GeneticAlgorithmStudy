@@ -174,11 +174,11 @@ void mutate(Chromosome* population, int popSize, int nCities)
 {
     for (int m = 0; m < popSize; m++)
     {     // generate 2 random positions to swap
-        int apos = myRandom() % nCities;
-        int bpos = myRandom() % nCities;
-        int CityA = population[m].tour[apos];
-        population[m].tour[apos] = population[m].tour[bpos];
-        population[m].tour[bpos] = CityA;
+        int aPos = myRandom() % nCities;
+        int bPos = myRandom() % nCities;
+        int cityA = population[m].tour[aPos];
+        population[m].tour[aPos] = population[m].tour[bPos];
+        population[m].tour[bPos] = cityA;
     }
 }
 
