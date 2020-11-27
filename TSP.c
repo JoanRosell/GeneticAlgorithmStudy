@@ -130,6 +130,18 @@ int main(int argc, char** argv)
         exit(1);
     }
 
+    // free all allocated memory
+    for (int i = 0; i < popSize; ++i)
+    {
+        free(population[i].gen);
+        free(tmpPopulation[i].gen);
+    }
+
+    free(mask);
+    free(cities);
+    free(population);
+    free(tmpPopulation);
+
     return(0);
 }
 
