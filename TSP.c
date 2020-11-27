@@ -25,7 +25,7 @@ typedef struct
 } Chrom;
 
 // Function to generate pseudo-random numbers
-inline int myRandom()
+int myRandom()
 {
     seed = (214013 * seed + 2531011);
     return(seed >> 13);
@@ -48,7 +48,7 @@ void printPath(int* path, Point* cities, int nCities);
 
 int main(int argc, char** argv)
 {
-    int    epochs = 500;
+    int    epochs = 20;
     int    nCities = 250;
     int    popSize = 40000;
     double elitism = 0.1;
@@ -86,6 +86,7 @@ int main(int argc, char** argv)
 
     generateCities(cities, nCities); // generate random cities and initialize genetic population
     initPopulation(population, popSize, nCities);
+    initPopulation(tmpPopulation, popSize, nCities);
     // generate random mutations into initial population
     for (int i = 0; i < 10; i++)
     {
@@ -148,6 +149,7 @@ void initPopulation(Chrom* population, int popSize, int nCities)
     for (int i = 0; i < popSize; i++)
     {
         population[i].distance = 0;
+        population[i].gen = malloc(nCities * sizeof(*population[i].gen));
         for (int j = 0; j < nCities; j++)
         {
             population[i].gen[j] = j;
