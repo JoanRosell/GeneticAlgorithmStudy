@@ -52,27 +52,20 @@ int main(int argc, char** argv)
     int    nCities = 250;
     int    popSize = 40000;
     double elitism = 0.1;
-
     seed = 12345;
 
     // obtain parameters at run time
     switch (argc)
     {
-    case 6: elitism = atof(argv[5]);
-
-    case 5: popSize = atoi(argv[4]);
-
-    case 4: nCities = atoi(argv[3]);
-
-    case 3: seed = atoi(argv[2]);
-
-    case 2: epochs = atoi(argv[1]);
-
-    default: break;
+        case 6: elitism = atof(argv[5]);
+        case 5: popSize = atoi(argv[4]);
+        case 4: nCities = atoi(argv[3]);
+        case 3: seed = atoi(argv[2]);
+        case 2: epochs = atoi(argv[1]);
+        default: break;
     }
 
     int eliteSize = popSize * elitism;
-
     Point* cities = malloc(nCities * sizeof(*cities)); // Array containing the positions of the cities
     int*   mask = malloc(nCities * sizeof(*mask));     // Helping structure to account for cities that has been already visited
     Chromosome* population = malloc(popSize * sizeof(*population));
