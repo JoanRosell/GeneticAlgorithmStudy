@@ -48,7 +48,7 @@ void printPath(int* path, Point* cities, int nCities);
 
 int main(int argc, char** argv)
 {
-    int    epochs = 20;
+    int    epochs = 500;
     int    nCities = 250;
     int    popSize = 40000;
     double elitism = 0.1;
