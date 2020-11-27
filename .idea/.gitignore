@@ -1,3 +1,10 @@
+# Default ignored files
+/shelf/
+/workspace.xml
+# Datasource local storage ignored files
+/../../../../:\dev\GeneticAlgorithmStudy\.idea/dataSources/
+/dataSources.local.xml
+
 # Prerequisites
 *.d
 
