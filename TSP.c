@@ -32,17 +32,17 @@ inline int myRandom()
 }
 
 // Function definitions
-void generate_cities();
+void generate_cities(Point* cities, int nCities);
 void init_population(Chrom* population, int popSize, int nCities);
 void mutate(Chrom* population, int popSize, int nCities);
 void compute_fitness(Chrom* population, int popSize, Point* cities, int nCities);
-float compute_path_distance(Point* cities, int nCities, int* path);
-float distance(const Point a, const Point b);
-void merge_sort(Chrom* A, int n);
-void merge(Chrom* A, int szA, Chrom* B, int szB, Chrom* C);
+float compute_path_distance(Point* cities, int nCities, const int* path);
+float distance(Point a, Point b);
+void merge_sort(Chrom* in, int size);
+void merge(Chrom* a, int aSize, Chrom* b, int bSize, Chrom* c);
 void copy_population(Chrom* in, Chrom* out, int popSize, int nCities);
-void mate(Chrom* inPop, int Nin, Chrom* outPop, int Nout, int* mask, int nCities);
-int check_valid(int* in, int* mask, int nCities);
+void mate(Chrom* in, int inSize, Chrom* out, int outSize, int* mask, int nCities);
+int check_valid(const int* in, int* mask, int nCities);
 void print_path(int* path, Point* cities, int nCities);
 
 
@@ -51,7 +51,7 @@ int main(int argc, char** argv)
     int    epochs = 500;
     int    nCities = 250;
     int    popSize = 40000;
-    double elitism = 0.1d;
+    double elitism = 0.1;
 
     seed = 12345;
 
@@ -81,8 +81,8 @@ int main(int argc, char** argv)
     printf("Find shortest path for %d cities. %d Epochs. population Size: %d\n",
            nCities, epochs, popSize);
 
-    printf("Size of Chrom %llu\n", sizeof(Chrom));
-    printf("Size of Point %llu\n", sizeof(Point));
+    printf("Size of Chrom %lu\n", sizeof(Chrom));
+    printf("Size of Point %lu\n", sizeof(Point));
 
     generate_cities(cities, nCities); // generate random cities and initialize genetic population
     init_population(population, popSize, nCities);
@@ -179,7 +179,7 @@ void compute_fitness(Chrom* population, int popSize, Point* cities, int nCities)
 
 // A path is a permutation of cities
 // Calculate the total distance of a path
-float compute_path_distance(Point* cities, int nCities, int* path)
+float compute_path_distance(Point* cities, int nCities, const int* path)
 {
     float dist = 0.0f;
 
@@ -198,70 +198,67 @@ float distance(const Point a, const Point b)
 }
 
 // Sort array A with n Chromosomes using recursive merge-sort algorithm
-void merge_sort(Chrom* A, int n)
+void merge_sort(Chrom* in, int size)
 {
-    int    i, n1, n2;
-    Chrom* A1, * A2;
-
-    if (n < 2)
+    if (size < 2)
     {
         return;         // the array is sorted when n=1
     }
-    if (n == 2)
+    if (size == 2)
     {
-        if (A[0].distance > A[1].distance)
+        if (in[0].distance > in[1].distance)
         {         // swap values of A[0] and A[1]
-            Chrom T = A[1];
-            A[1] = A[0];
-            A[0] = T;
+            Chrom temp = in[1];
+            in[1] = in[0];
+            in[0] = temp;
         }
         return;         // elements sorted
     }
 
     // divide A into two arrays, A1 and A2
-    n1 = n / 2;      // number of elements in A1
-    n2 = n - n1;     // number of elements in A2
-    A1 = (Chrom*)malloc(sizeof(Chrom) * n1);
-    A2 = (Chrom*)malloc(sizeof(Chrom) * n2);
+    int n1 = size / 2;      // number of elements in A1
+    int n2 = size - n1;     // number of elements in A2
+    Chrom* firstH = malloc(sizeof(*firstH) * n1);
+    Chrom* secondH = malloc(sizeof(*secondH) * n2);
 
     // move first n/2 elements to A1
-    for (i = 0; i < n1; i++)
+    for (int i = 0; i < n1; i++)
     {
-        A1[i] = A[i];         // copy full entry
+        firstH[i] = in[i];         // copy full entry
     }
     // move the rest to A2
-    for (i = 0; i < n2; i++)
+    for (int i = 0; i < n2; i++)
     {
-        A2[i] = A[i + n1];         // copy full entry
+        secondH[i] = in[i + n1];         // copy full entry
     }
 
     // recursive calls
-    merge_sort(A1, n1);
-    merge_sort(A2, n2);
+    merge_sort(firstH, n1);
+    merge_sort(secondH, n2);
 
     // merge
-    merge(A1, n1, A2, n2, A);
+    merge(firstH, n1, secondH, n2, in);
 
     // free allocated memory
-    free(A1);
-    free(A2);
+    free(firstH);
+    free(secondH);
 }
 
 // Merge two sorted arrays, A with szA Chromosomes and B with szB Chromosomes, into a sorted array C
-void merge(Chrom* A, int szA, Chrom* B, int szB, Chrom* C)
+void merge(Chrom* a, int aSize, Chrom* b, int bSize, Chrom* c)
 {
     int i = 0, j = 0;
 
-    while (i + j < szA + szB)
+    while (i + j < aSize + bSize)
     {
-        if (j == szB || ((i < szA) && (A[i].distance <= B[j].distance)))
+        if (j == bSize || ((i < aSize) && (a[i].distance <= b[j].distance)))
         {
-            C[i + j] = A[i];             // copy full struct
+            c[i + j] = a[i];             // copy full struct
             i++;
         }
         else
         {
-            C[i + j] = B[j];             // copy full struct
+            c[i + j] = b[j];             // copy full struct
             j++;
         }
     }
@@ -280,15 +277,15 @@ void copy_population(Chrom* in, Chrom* out, int popSize, int nCities)
 }
 
 // mate randomly the elite population in in into P_out
-void mate(Chrom* inPop, int Nin, Chrom* outPop, int Nout, int* mask, int nCities)
+void mate(Chrom* in, int inSize, Chrom* out, int outSize, int* mask, int nCities)
 {
     // mate the elite population to generate new genes
-    for (int m = 0; m < Nout; m++)
+    for (int m = 0; m < outSize; m++)
     {
         // Create new gene in Output population by mating to genes from the elite input population
         // select two random genes from elite population and mate them at random position pos
-        int i1 = myRandom() % Nin;
-        int i2 = myRandom() % Nin;
+        int i1 = myRandom() % inSize;
+        int i2 = myRandom() % inSize;
         int pos = myRandom() % nCities;
 
         // Clear mask of already visited cities
@@ -300,13 +297,13 @@ void mate(Chrom* inPop, int Nin, Chrom* outPop, int Nout, int* mask, int nCities
         // Copy first part of input gene i1 to output gene
         for (int i = 0; i < pos; i++)
         {
-            outPop[m].gen[i] = inPop[i1].gen[i];
+            out[m].gen[i] = in[i1].gen[i];
         }
 
         // Mark all cities in first part of output gene i1
         for (int i = 0; i < pos; i++)
         {
-            int city = outPop[m].gen[i];
+            int city = out[m].gen[i];
             mask[city] = 1;
         }
 
@@ -314,34 +311,32 @@ void mate(Chrom* inPop, int Nin, Chrom* outPop, int Nout, int* mask, int nCities
         //    maintaining the ordering in gene i2
         // copy those cities that are not in the first part of gene i1
         int j = 0;         // Points to the consecutive positions in gen i2
-        int city = inPop[i2].gen[j];
+        int city = in[i2].gen[j];
         for (int i = pos; i < nCities; i++)
         {
             while (mask[city] == 1)               // skip cities in gen i2 already visited
             {
                 j++;
-                city = inPop[i2].gen[j];
+                city = in[i2].gen[j];
             }
 
             mask[city] = 1;                     // mark city as seen
-            outPop[m].gen[i] = city;            // copy city to output gene
+            out[m].gen[i] = city;            // copy city to output gene
         }
     }
 }
 
 // Checks is a path is valid: does not contain repeats
-int check_valid(int* in, int* mask, int nCities)
+int check_valid(const int* in, int* mask, int nCities)
 {
-    int i;
-
     // clear mask
-    for (i = 0; i < nCities; i++)
+    for (int i = 0; i < nCities; i++)
     {
         mask[i] = 0;
     }
 
     // check if city has been already visited, otherwise insert city in mask
-    for (i = 0; i < nCities; i++)
+    for (int i = 0; i < nCities; i++)
     {
         if (mask[in[i]] == 0)
         {
