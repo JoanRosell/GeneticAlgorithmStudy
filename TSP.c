@@ -49,8 +49,8 @@ void printPath(int* path, Point* cities, int nCities);
 int main(int argc, char** argv)
 {
     int    epochs = 500;
-    int    nCities = 250;
-    int    popSize = 40000;
+    int    nCities = 250; // TODO: Change type to size_t
+    int    popSize = 40000; // TODO: Change type to size_t
     double elitism = 0.1;
     seed = 12345;
 
@@ -65,17 +65,19 @@ int main(int argc, char** argv)
         default: break;
     }
 
-    int eliteSize = popSize * elitism;
-    Point* cities = malloc(nCities * sizeof(*cities)); // Array containing the positions of the cities
-    int*   mask = malloc(nCities * sizeof(*mask));     // Helping structure to account for cities that has been already visited
+    int eliteSize = popSize * elitism; // TODO: Change type to size_t
+    // Array containing the positions of the cities
+    Point* cities = malloc(nCities * sizeof(*cities));
+
+    // Helping structure to account for cities that has been already visited
+    int*   mask = malloc(nCities * sizeof(*mask)); // TODO: Change type to char, as a mask this array could be implemented as a simple bitmask
+
     Chromosome* population = malloc(popSize * sizeof(*population));
     Chromosome* tmpPopulation = malloc(popSize * sizeof(*tmpPopulation));
 
-    printf("Find shortest path for %d cities. %d Epochs. population Size: %d\n",
-           nCities, epochs, popSize);
-
-    printf("Size of Chromosome %lu\n", sizeof(Chromosome));
-    printf("Size of Point %lu\n", sizeof(Point));
+    printf("Find shortest path for %d cities. %d Epochs. population Size: %d\n", nCities, epochs, popSize);
+    printf("Size of Chromosome: %lu bytes\n", sizeof(Chromosome));
+    printf("Size of Point: %lu bytes\n", sizeof(Point));
 
     generateCities(cities, nCities); // generate random cities and initialize genetic population
     initPopulation(population, popSize, nCities);
