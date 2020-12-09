@@ -309,22 +309,24 @@ void mate(Chromosome* in, size_t inSize, Chromosome* out, size_t outSize, int* m
         size_t pos = myRandom() % nCities;
 
         // Clear mask of already visited cities
-        memset(mask, 0, nCities * sizeof(*mask));
+        //memset(mask, 0, nCities * sizeof(*mask));
+        uint64_t _mask[4] = {0, 0, 0, 0};
 
         // Copy first part of input gene i1 to output gene
         for (size_t i = 0; i < pos; i++)
         {
             tag_t city = in[i1].tour[i];
             out[m].tour[i] = city;
-            mask[city] = 1;
+            _mask[city/64] |= (1UL << city % 64);
+            //mask[city] = 1;
         }
 
         // copy cities in input gene i2 to last part of output gene,
         //    maintaining the ordering in gene i2
         // copy those cities that are not in the first part of gene i1
         size_t j = 0;         // Points to the consecutive positions in tour i2
-        int city = in[i2].tour[j];
-        for (size_t i = pos; i < nCities; i++)
+        tag_t city = in[i2].tour[j];
+        /*for (size_t i = pos; i < nCities; i++)
         {
             while (mask[city] == 1)               // skip cities in tour i2 already visited
             {
@@ -333,6 +335,18 @@ void mate(Chromosome* in, size_t inSize, Chromosome* out, size_t outSize, int* m
             }
 
             mask[city] = 1;                     // mark city as seen
+            out[m].tour[i] = city;            // copy city to output gene
+        }*/
+
+        for (size_t i = pos; i < nCities; i++)
+        {
+            while ((_mask[city/64] >> city % 64) & 1UL)               // skip cities in tour i2 already visited
+            {
+                j++;
+                city = in[i2].tour[j];
+            }
+
+            _mask[city/64] |= (1UL << city % 64);                     // mark city as seen
             out[m].tour[i] = city;            // copy city to output gene
         }
     }
