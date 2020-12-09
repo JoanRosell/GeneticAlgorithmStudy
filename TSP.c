@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <math.h>
+#include <string.h>
 
 // Variable used to generate pseudo-random numbers
 unsigned int seed;
@@ -308,21 +309,13 @@ void mate(Chromosome* in, size_t inSize, Chromosome* out, size_t outSize, int* m
         size_t pos = myRandom() % nCities;
 
         // Clear mask of already visited cities
-        for (size_t i = 0; i < nCities; i++)
-        {
-            mask[i] = 0;
-        }
+        memset(mask, 0, nCities * sizeof(*mask));
 
         // Copy first part of input gene i1 to output gene
         for (size_t i = 0; i < pos; i++)
         {
-            out[m].tour[i] = in[i1].tour[i];
-        }
-
-        // Mark all cities in first part of output gene i1
-        for (size_t i = 0; i < pos; i++)
-        {
-            int city = out[m].tour[i];
+            tag_t city = in[i1].tour[i];
+            out[m].tour[i] = city;
             mask[city] = 1;
         }
 
