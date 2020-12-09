@@ -12,7 +12,7 @@
 unsigned int seed;
 
 // Type definition of a Point
-typedef uint16_t coord_t;
+typedef float coord_t;
 typedef struct Point
 {
     coord_t x;
