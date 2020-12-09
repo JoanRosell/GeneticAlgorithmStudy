@@ -196,12 +196,17 @@ void computeFitness(Chromosome* population, size_t popSize, Point* cities, size_
 float computePathDistance(Point* cities, size_t nCities, const tag_t *path)
 {
     float dist = 0.0f;
+    Point citiesInPath[nCities];
+    for (size_t i = 0; i < nCities; ++i)
+    {
+        citiesInPath[i] = cities[path[i]];
+    }
 
     for (size_t i = 1; i < nCities; i++)
     {
-        dist = dist + distance(cities[path[i - 1]], cities[path[i]]);
+        dist = dist + distance(citiesInPath[i - 1], citiesInPath[i]);
     }
-    return(dist + distance(cities[path[nCities - 1]], cities[path[0]]));
+    return(dist + distance(citiesInPath[nCities - 1], citiesInPath[0]));
 }
 
 // Distance between two Points
