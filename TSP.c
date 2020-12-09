@@ -5,23 +5,26 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <math.h>
 
 // Variable used to generate pseudo-random numbers
 unsigned int seed;
 
 // Type definition of a Point
+typedef uint16_t coord_t;
 typedef struct Point
 {
-    int x;
-    int y;
+    coord_t x;
+    coord_t y;
 } Point;
 
 // Structure base of chromosome. A chromosome is interpreted as a path
+typedef uint8_t tag_t;
 typedef struct Chromosome
 {
     float distance;
-    int*  tour;
+    tag_t*  tour;
 } Chromosome;
 
 // Function to generate pseudo-random numbers
@@ -36,14 +39,14 @@ void generateCities(Point* cities, size_t nCities);
 void initPopulation(Chromosome* population, size_t popSize, size_t nCities);
 void mutate(Chromosome* population, size_t popSize, size_t nCities);
 void computeFitness(Chromosome* population, size_t popSize, Point* cities, size_t nCities);
-float computePathDistance(Point* cities, size_t nCities, const int* path);
+float computePathDistance(Point* cities, size_t nCities, const tag_t *path);
 float distance(Point a, Point b);
 void mergeSort(Chromosome* in, size_t size);
 void merge(Chromosome* a, size_t aSize, Chromosome* b, size_t bSize, Chromosome* c);
 void copyPopulation(Chromosome* in, Chromosome* out, size_t popSize, size_t nCities);
 void mate(Chromosome* in, size_t inSize, Chromosome* out, size_t outSize, int* mask, size_t nCities);
-int valid(const int* in, int* mask, size_t nCities);
-void printPath(int* path, Point* cities, size_t nCities);
+int valid(const tag_t *in, int* mask, size_t nCities);
+void printPath(tag_t *path, Point* cities, size_t nCities);
 
 
 int main(int argc, char** argv)
@@ -77,7 +80,9 @@ int main(int argc, char** argv)
 
     printf("Find shortest path for %ld cities. %ld Epochs. population Size: %ld\n", nCities, epochs, popSize);
     printf("Size of Chromosome: %lu bytes\n", sizeof(Chromosome));
-    printf("Size of Point: %lu bytes\n", sizeof(Point));
+    printf("Size of city vector: %lu bytes\n", sizeof(Point) * nCities);
+    printf("Size of a permutation: %ld bytes\n", sizeof(tag_t) * nCities);
+    printf("Population memory footprint: %ld bytes\n", popSize * (sizeof(Chromosome) + sizeof(tag_t) * nCities));
 
     generateCities(cities, nCities); // generate random cities and initialize genetic population
     initPopulation(population, popSize, nCities);
@@ -188,7 +193,7 @@ void computeFitness(Chromosome* population, size_t popSize, Point* cities, size_
 
 // A path is a permutation of cities
 // Calculate the total distance of a path
-float computePathDistance(Point* cities, size_t nCities, const int* path)
+float computePathDistance(Point* cities, size_t nCities, const tag_t *path)
 {
     float dist = 0.0f;
 
@@ -336,7 +341,7 @@ void mate(Chromosome* in, size_t inSize, Chromosome* out, size_t outSize, int* m
 }
 
 // Checks is a path is valid: does not contain repeats
-int valid(const int* in, int* mask, size_t nCities)
+int valid(const tag_t *in, int* mask, size_t nCities)
 {
     // clear mask
     for (size_t i = 0; i < nCities; i++)
@@ -361,7 +366,7 @@ int valid(const int* in, int* mask, size_t nCities)
 }
 
 // Display path into screen
-void printPath(int* path, Point* cities, size_t nCities)
+void printPath(tag_t *path, Point* cities, size_t nCities)
 {
     size_t   i;
     float dist = 0.0f;
