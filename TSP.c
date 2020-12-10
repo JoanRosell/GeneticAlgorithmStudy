@@ -308,64 +308,36 @@ void mate(Chromosome* in, size_t inSize, Chromosome* out, size_t outSize, int* m
         size_t i1 = myRandom() % inSize;
         size_t i2 = myRandom() % inSize;
         size_t pos = myRandom() % nCities;
+        const tag_t* parentA = in[i1].tour;
+        const tag_t* parentB = in[i2].tour;
+        tag_t* child = out[m].tour;
 
         // Clear mask of already visited cities
         memset(mask, 0, nCities * sizeof(*mask));
 
-        // Copy first part of input gene i1 to output gene
+        // Copy first part of parent A to child
         for (size_t i = 0; i < pos; i++)
         {
-            tag_t city = in[i1].tour[i];
-            out[m].tour[i] = city;
+            tag_t city = parentA[i];
+            child[i] = city;
             mask[city] = 1;
         }
 
-        // copy cities in input gene i2 to last part of output gene,
-        //    maintaining the ordering in gene i2
-        // copy those cities that are not in the first part of gene i1
-
-        // Copy all city tags in a first round, using UINT8_MAX to indicate that the city is visited and we don't want to copy it
-        tag_t unfilteredCities[nCities];
-        for (size_t i = 0; i < nCities; ++i)
-        {
-            tag_t city = in[i2].tour[i];
-            unfilteredCities[i] = (mask[city] == 1) ? UINT8_MAX : city;
-        }
-
-        // Filter the tags that are valid into a compact array ready to be copied
-        tag_t citiesToCopy[nCities - pos];
-        size_t j = 0;
-        for (size_t i = 0; i < nCities; ++i)
-        {
-            if (unfilteredCities[i] < UINT8_MAX)
-            {
-                citiesToCopy[j] = unfilteredCities[i];
-                j++;
-            }
-        }
-
-        // Copy the cities and mark them as visited
-        j = 0;
-        for (size_t i = pos; i < nCities; i++, j++)
-        {
-            tag_t city = citiesToCopy[j];
-            out[m].tour[i] = city;
-            mask[city] = 1;
-        }
-
-        /*j = 0;         // Points to the consecutive positions in tour i2
-        tag_t city = in[i2].tour[j];
+        // Copy cities in parent B to last part of child, maintaining the ordering in parent B
+        // Copy those cities that are not in the first part of parent A
+        size_t j = 0;         // Points to the consecutive positions in parent B's tour
+        tag_t city = parentB[j];
         for (size_t i = pos; i < nCities; i++)
         {
-            while (mask[city] == 1)               // skip cities in tour i2 already visited
+            while (mask[city] == 1)               // skip cities in parent B already visited
             {
                 j++;
-                city = in[i2].tour[j];
+                city = parentB[j];
             }
 
             mask[city] = 1;                     // mark city as seen
-            out[m].tour[i] = city;            // copy city to output gene
-        }*/
+            child[i] = city;            // copy city to child
+        }
     }
 }
 
