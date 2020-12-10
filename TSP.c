@@ -8,7 +8,6 @@
 #include <stdint.h>
 #include <math.h>
 #include <string.h>
-#include <immintrin.h>
 
 // Variable used to generate pseudo-random numbers
 unsigned int seed;
