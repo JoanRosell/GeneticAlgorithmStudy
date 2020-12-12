@@ -45,8 +45,8 @@ float distance(Point a, Point b);
 void mergeSort(Chromosome* in, size_t size);
 void merge(Chromosome* a, size_t aSize, Chromosome* b, size_t bSize, Chromosome* c);
 void copyPopulation(Chromosome* in, Chromosome* out, size_t popSize, size_t nCities);
-void mate(Chromosome* in, size_t inSize, Chromosome* out, size_t outSize, int* mask, size_t nCities);
-int valid(const tag_t *in, int* mask, size_t nCities);
+void mate(Chromosome *in, size_t inSize, Chromosome *out, size_t outSize, size_t nCities);
+int valid(const tag_t *in, size_t nCities);
 void printPath(tag_t *path, Point* cities, size_t nCities);
 
 
@@ -101,7 +101,7 @@ int main(int argc, char** argv)
     for (size_t i = 0; i < epochs; i++)
     {
         copyPopulation(population, tmpPopulation, eliteSize, nCities);                             // copy elite population to new generation
-        mate(population, eliteSize, tmpPopulation + eliteSize, popSize - eliteSize, mask, nCities); // mate from elite
+        mate(population, eliteSize, tmpPopulation + eliteSize, popSize - eliteSize, nCities); // mate from elite
         mutate(tmpPopulation + eliteSize, popSize - eliteSize, nCities);                            // do not affect elite
         copyPopulation(tmpPopulation, population, popSize, nCities);
         computeFitness(population, popSize, cities, nCities);
@@ -114,7 +114,7 @@ int main(int argc, char** argv)
             printf("Fitness: %f\n", population[0].distance);
 
             // sanity check
-            if (!valid(population[0].tour, mask, nCities))
+            if (!valid(population[0].tour, nCities))
             {
                 printf("ERROR: tour is not a valid permutation of cities");
                 exit(1);
@@ -125,7 +125,7 @@ int main(int argc, char** argv)
     // print final result
     printPath(population[0].tour, cities, nCities);
     // sanity check
-    if (!valid(population[0].tour, mask, nCities))
+    if (!valid(population[0].tour, nCities))
     {
         printf("ERROR: tour is not a valid permutation of cities");
         exit(1);
@@ -297,8 +297,11 @@ void copyPopulation(Chromosome* in, Chromosome* out, size_t popSize, size_t nCit
 }
 
 // mate randomly the elite population in in into P_out
-void mate(Chromosome* in, size_t inSize, Chromosome* out, size_t outSize, int* mask, size_t nCities)
+void mate(Chromosome *in, size_t inSize, Chromosome *out, size_t outSize, size_t nCities)
 {
+    // Declare local mask
+    tag_t mask[nCities];
+
     // mate the elite population to generate new genes
     for (size_t m = 0; m < outSize; m++)
     {
@@ -324,7 +327,7 @@ void mate(Chromosome* in, size_t inSize, Chromosome* out, size_t outSize, int* m
 
         // Copy cities in parent B to last part of child, maintaining the ordering in parent B
         // Copy those cities that are not in the first part of parent A
-        size_t j = 0;         // Points to the consecutive positions in parent B's tour
+        size_t j = 0;         // Points to the consecutive positions in parent B
         tag_t city = parentB[j];
         for (size_t i = pos; i < nCities; i++)
         {
@@ -338,16 +341,16 @@ void mate(Chromosome* in, size_t inSize, Chromosome* out, size_t outSize, int* m
             child[i] = city;            // copy city to child
         }
     }
+
 }
 
 // Checks is a path is valid: does not contain repeats
-int valid(const tag_t *in, int* mask, size_t nCities)
+int valid(const tag_t *in, size_t nCities)
 {
     // clear mask
-    for (size_t i = 0; i < nCities; i++)
-    {
-        mask[i] = 0;
-    }
+    tag_t mask[nCities];
+    // Clear mask of already visited cities
+    memset(mask, 0, nCities * sizeof(*mask));
 
     // check if city has been already visited, otherwise insert city in mask
     for (size_t i = 0; i < nCities; i++)
