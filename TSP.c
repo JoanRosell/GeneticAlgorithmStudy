@@ -327,21 +327,20 @@ void mate(Chromosome *in, size_t inSize, Chromosome *out, size_t outSize, size_t
 
         // Copy cities in parent B to last part of child, maintaining the ordering in parent B
         // Copy those cities that are not in the first part of parent A
-        size_t j = 0;         // Points to the consecutive positions in parent B
-        tag_t city = parentB[j];
+        size_t j = 0;
+        tag_t city;
         for (size_t i = pos; i < nCities; i++)
         {
-            while (mask[city] == 1)               // skip cities in parent B already visited
+            do
             {
-                j++;
-                city = parentB[j];
+                city = parentB[j++];
             }
+            while (mask[city]);
 
             mask[city] = 1;                     // mark city as seen
             child[i] = city;            // copy city to child
         }
     }
-
 }
 
 // Checks is a path is valid: does not contain repeats
