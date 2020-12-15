@@ -74,7 +74,7 @@ int main(int argc, char** argv)
     Point* cities = malloc(nCities * sizeof(*cities));
 
     // Helping structure to account for cities that has been already visited
-    int*   mask = malloc(nCities * sizeof(*mask)); // TODO: Change type to char, as a mask this array could be implemented as a simple bitmask
+    int*   mask = malloc(nCities * sizeof(*mask)); // TODO: Change type to char
 
     Chromosome* population = malloc(popSize * sizeof(*population));
     Chromosome* tmpPopulation = malloc(popSize * sizeof(*tmpPopulation));
@@ -100,6 +100,7 @@ int main(int argc, char** argv)
     // generate new populations from initial population
     for (size_t i = 0; i < epochs; i++)
     {
+        // Generate Random numbers to feed the epoch
         copyPopulation(population, tmpPopulation, eliteSize, nCities);                             // copy elite population to new generation
         mate(population, eliteSize, tmpPopulation + eliteSize, popSize - eliteSize, nCities); // mate from elite
         mutate(tmpPopulation + eliteSize, popSize - eliteSize, nCities);                            // do not affect elite
@@ -194,6 +195,9 @@ void computeFitness(Chromosome* population, size_t popSize, Point* cities, size_
 
 // A path is a permutation of cities
 // Calculate the total distance of a path
+// IDEA:
+//  Store distances as a lower triangular matrix instead of computing them in every iteration
+//  For matrix n by n you need array (n+1)*n/2 length and transition rule is Matrix[i][j] = Array[i*(i+1)/2+j]
 float computePathDistance(Point* cities, size_t nCities, const tag_t *path)
 {
     float dist = 0.0f;
@@ -301,6 +305,7 @@ void mate(Chromosome *in, size_t inSize, Chromosome *out, size_t outSize, size_t
 {
     // Declare local mask
     tag_t mask[nCities];
+    memset(mask, 0xFF, nCities * sizeof(*mask));
 
     // mate the elite population to generate new genes
     for (size_t m = 0; m < outSize; m++)
@@ -314,32 +319,23 @@ void mate(Chromosome *in, size_t inSize, Chromosome *out, size_t outSize, size_t
         const tag_t* parentB = in[i2].tour;
         tag_t* child = out[m].tour;
 
-        // Clear mask of already visited cities
-        memset(mask, 0, nCities * sizeof(*mask));
-
         // Copy first part of parent A to child
+        memcpy(child, parentA, pos * sizeof(*child));
+
         for (size_t i = 0; i < pos; i++)
         {
-            tag_t city = parentA[i];
-            child[i] = city;
-            mask[city] = 1;
+            mask[parentA[i]] = 0;
         }
 
-        // Copy cities in parent B to last part of child, maintaining the ordering in parent B
-        // Copy those cities that are not in the first part of parent A
-        size_t j = 0;
-        tag_t city;
-        for (size_t i = pos; i < nCities; i++)
+        size_t k = pos;
+        for (size_t i = 0; i < nCities; ++i)
         {
-            do
-            {
-                city = parentB[j++];
-            }
-            while (mask[city]);
-
-            mask[city] = 1;                     // mark city as seen
-            child[i] = city;            // copy city to child
+            tag_t tmp = mask[parentB[i]];
+            child[k] = (parentB[i] & tmp) | (child[k] & ~tmp);
+            k += tmp & 1;
         }
+
+        memset(mask, 0xFF, nCities * sizeof(*mask));
     }
 }
 
