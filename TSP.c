@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <math.h>
+#include <string.h>
 
 // Variable used to generate pseudo-random numbers
 unsigned int seed;
@@ -44,8 +45,8 @@ float distance(Point a, Point b);
 void mergeSort(Chromosome* in, size_t size);
 void merge(Chromosome* a, size_t aSize, Chromosome* b, size_t bSize, Chromosome* c);
 void copyPopulation(Chromosome* in, Chromosome* out, size_t popSize, size_t nCities);
-void mate(Chromosome* in, size_t inSize, Chromosome* out, size_t outSize, int* mask, size_t nCities);
-int valid(const tag_t *in, int* mask, size_t nCities);
+void mate(Chromosome *in, size_t inSize, Chromosome *out, size_t outSize, size_t nCities);
+int valid(const tag_t *in, size_t nCities);
 void printPath(tag_t *path, Point* cities, size_t nCities);
 
 
@@ -73,7 +74,7 @@ int main(int argc, char** argv)
     Point* cities = malloc(nCities * sizeof(*cities));
 
     // Helping structure to account for cities that has been already visited
-    int*   mask = malloc(nCities * sizeof(*mask)); // TODO: Change type to char, as a mask this array could be implemented as a simple bitmask
+    int*   mask = malloc(nCities * sizeof(*mask)); // TODO: Change type to char
 
     Chromosome* population = malloc(popSize * sizeof(*population));
     Chromosome* tmpPopulation = malloc(popSize * sizeof(*tmpPopulation));
@@ -99,8 +100,9 @@ int main(int argc, char** argv)
     // generate new populations from initial population
     for (size_t i = 0; i < epochs; i++)
     {
+        // Generate Random numbers to feed the epoch
         copyPopulation(population, tmpPopulation, eliteSize, nCities);                             // copy elite population to new generation
-        mate(population, eliteSize, tmpPopulation + eliteSize, popSize - eliteSize, mask, nCities); // mate from elite
+        mate(population, eliteSize, tmpPopulation + eliteSize, popSize - eliteSize, nCities); // mate from elite
         mutate(tmpPopulation + eliteSize, popSize - eliteSize, nCities);                            // do not affect elite
         copyPopulation(tmpPopulation, population, popSize, nCities);
         computeFitness(population, popSize, cities, nCities);
@@ -113,7 +115,7 @@ int main(int argc, char** argv)
             printf("Fitness: %f\n", population[0].distance);
 
             // sanity check
-            if (!valid(population[0].tour, mask, nCities))
+            if (!valid(population[0].tour, nCities))
             {
                 printf("ERROR: tour is not a valid permutation of cities");
                 exit(1);
@@ -124,7 +126,7 @@ int main(int argc, char** argv)
     // print final result
     printPath(population[0].tour, cities, nCities);
     // sanity check
-    if (!valid(population[0].tour, mask, nCities))
+    if (!valid(population[0].tour, nCities))
     {
         printf("ERROR: tour is not a valid permutation of cities");
         exit(1);
@@ -193,6 +195,9 @@ void computeFitness(Chromosome* population, size_t popSize, Point* cities, size_
 
 // A path is a permutation of cities
 // Calculate the total distance of a path
+// IDEA:
+//  Store distances as a lower triangular matrix instead of computing them in every iteration
+//  For matrix n by n you need array (n+1)*n/2 length and transition rule is Matrix[i][j] = Array[i*(i+1)/2+j]
 float computePathDistance(Point* cities, size_t nCities, const tag_t *path)
 {
     float dist = 0.0f;
@@ -296,8 +301,12 @@ void copyPopulation(Chromosome* in, Chromosome* out, size_t popSize, size_t nCit
 }
 
 // mate randomly the elite population in in into P_out
-void mate(Chromosome* in, size_t inSize, Chromosome* out, size_t outSize, int* mask, size_t nCities)
+void mate(Chromosome *in, size_t inSize, Chromosome *out, size_t outSize, size_t nCities)
 {
+    // Declare local mask
+    tag_t mask[nCities];
+    memset(mask, 0xFF, nCities * sizeof(*mask));
+
     // mate the elite population to generate new genes
     for (size_t m = 0; m < outSize; m++)
     {
@@ -306,53 +315,37 @@ void mate(Chromosome* in, size_t inSize, Chromosome* out, size_t outSize, int* m
         size_t i1 = myRandom() % inSize;
         size_t i2 = myRandom() % inSize;
         size_t pos = myRandom() % nCities;
+        const tag_t* parentA = in[i1].tour;
+        const tag_t* parentB = in[i2].tour;
+        tag_t* child = out[m].tour;
 
-        // Clear mask of already visited cities
-        for (size_t i = 0; i < nCities; i++)
-        {
-            mask[i] = 0;
-        }
+        // Copy first part of parent A to child
+        memcpy(child, parentA, pos * sizeof(*child));
 
-        // Copy first part of input gene i1 to output gene
         for (size_t i = 0; i < pos; i++)
         {
-            out[m].tour[i] = in[i1].tour[i];
+            mask[parentA[i]] = 0;
         }
 
-        // Mark all cities in first part of output gene i1
-        for (size_t i = 0; i < pos; i++)
+        size_t k = pos;
+        for (size_t i = 0; i < nCities; ++i)
         {
-            int city = out[m].tour[i];
-            mask[city] = 1;
+            tag_t tmp = mask[parentB[i]];
+            child[k] = (parentB[i] & tmp) | (child[k] & ~tmp);
+            k += tmp & 1;
         }
 
-        // copy cities in input gene i2 to last part of output gene,
-        //    maintaining the ordering in gene i2
-        // copy those cities that are not in the first part of gene i1
-        size_t j = 0;         // Points to the consecutive positions in tour i2
-        int city = in[i2].tour[j];
-        for (size_t i = pos; i < nCities; i++)
-        {
-            while (mask[city] == 1)               // skip cities in tour i2 already visited
-            {
-                j++;
-                city = in[i2].tour[j];
-            }
-
-            mask[city] = 1;                     // mark city as seen
-            out[m].tour[i] = city;            // copy city to output gene
-        }
+        memset(mask, 0xFF, nCities * sizeof(*mask));
     }
 }
 
 // Checks is a path is valid: does not contain repeats
-int valid(const tag_t *in, int* mask, size_t nCities)
+int valid(const tag_t *in, size_t nCities)
 {
     // clear mask
-    for (size_t i = 0; i < nCities; i++)
-    {
-        mask[i] = 0;
-    }
+    tag_t mask[nCities];
+    // Clear mask of already visited cities
+    memset(mask, 0, nCities * sizeof(*mask));
 
     // check if city has been already visited, otherwise insert city in mask
     for (size_t i = 0; i < nCities; i++)

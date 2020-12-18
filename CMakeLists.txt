@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.13)
 project(GeneticAlgorithmStudy)
 add_executable( GeneticAlgorithmStudy TSP.c)
-
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native")
 target_link_libraries(GeneticAlgorithmStudy m)
