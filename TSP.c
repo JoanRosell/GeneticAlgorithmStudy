@@ -96,10 +96,6 @@ int main(int argc, char** argv)
     size_t aMutateVector[outSize];
     size_t bMutateVector[outSize];
 
-    Chromosome* popToMutate = tmpPopulation + eliteSize;
-    Chromosome* in = population;
-    Chromosome* out = tmpPopulation + eliteSize;
-
     // generate new populations from initial population
     for (size_t i = 0; i < epochs; i++)
     {
@@ -136,9 +132,9 @@ int main(int argc, char** argv)
                 size_t i1 = aMateVector[m];
                 size_t i2 = bMateVector[m];
                 size_t pos = cMateVector[m];
-                const tag_t* parentA = in[i1].tour;
-                const tag_t* parentB = in[i2].tour;
-                tag_t* child = out[m].tour;
+                const tag_t* parentA = population[i1].tour;
+                const tag_t* parentB = population[i2].tour;
+                tag_t* child = tmpPopulation[m + eliteSize].tour;
 
                 // Copy first part of parent A to child
                 memcpy(child, parentA, pos * sizeof(*child));
@@ -163,9 +159,9 @@ int main(int argc, char** argv)
             {     // generate 2 random positions to swap
                 size_t aPos = aMutateVector[m];
                 size_t bPos = bMutateVector[m];
-                int cityA = popToMutate[m].tour[aPos];
-                popToMutate[m].tour[aPos] = popToMutate[m].tour[bPos];
-                popToMutate[m].tour[bPos] = cityA;
+                tag_t cityA = tmpPopulation[m + eliteSize].tour[aPos];
+                tmpPopulation[m + eliteSize].tour[aPos] = tmpPopulation[m + eliteSize].tour[bPos];
+                tmpPopulation[m + eliteSize].tour[bPos] = cityA;
             }
 
             copyPopulation(tmpPopulation, population, popSize, nCities);
