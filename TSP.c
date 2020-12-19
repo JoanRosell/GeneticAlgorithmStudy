@@ -103,24 +103,26 @@ int main(int argc, char** argv)
     // generate new populations from initial population
     for (size_t i = 0; i < epochs; i++)
     {
-        // Init random number vectors
-        for (size_t m = 0; m < outSize; m++)
-        {
-            aMateVector[m] = myRandom() % inSize;
-            bMateVector[m] = myRandom() % inSize;
-            cMateVector[m] = myRandom() % nCities;
-        }
-
-        for (size_t m = 0; m < outSize; m++)
-        {
-            aMutateVector[m] = myRandom() % nCities;
-            bMutateVector[m] = myRandom() % nCities;
-        }
-
-        copyPopulation(population, tmpPopulation, eliteSize, nCities); // copy elite population to new generation
-
         #pragma omp parallel num_threads(4)
         {
+            #pragma omp single
+            {
+                // Init random number vectors
+                for (size_t m = 0; m < outSize; m++) {
+                    aMateVector[m] = myRandom() % inSize;
+                    bMateVector[m] = myRandom() % inSize;
+                    cMateVector[m] = myRandom() % nCities;
+                }
+
+                for (size_t m = 0; m < outSize; m++) {
+                    aMutateVector[m] = myRandom() % nCities;
+                    bMutateVector[m] = myRandom() % nCities;
+                }
+
+                // copy elite population to new generation
+                copyPopulation(population, tmpPopulation, eliteSize, nCities);
+            }
+
             // mate(population, eliteSize, tmpPopulation + eliteSize, popSize - eliteSize, nCities); // mate from elite
             #pragma omp for schedule(static)
             for (size_t m = 0; m < outSize; m++)
@@ -171,37 +173,40 @@ int main(int argc, char** argv)
 
             // computeFitness(population, popSize, cities, nCities);
             #pragma omp for schedule(static)
-            for (size_t i = 0; i < popSize; i++)
+            for (size_t j = 0; j < popSize; j++)
             {
                 float dist = 0.0f;
                 Point citiesInPath[nCities];
-                for (size_t j = 0; j < nCities; ++j)
+                for (size_t k = 0; k < nCities; ++k)
                 {
-                    citiesInPath[j] = cities[population[i].tour[j]];
+                    citiesInPath[k] = cities[population[j].tour[k]];
                 }
 
-                for (size_t j = 1; j < nCities; j++)
+                for (size_t k = 1; k < nCities; k++)
                 {
-                    dist += distance(citiesInPath[j - 1], citiesInPath[j]);
+                    dist += distance(citiesInPath[k - 1], citiesInPath[k]);
                 }
 
-                population[i].distance = dist + distance(citiesInPath[nCities - 1], citiesInPath[0]);
+                population[j].distance = dist + distance(citiesInPath[nCities - 1], citiesInPath[0]);
             }
-        }
 
-        mergeSort(population, popSize);                // sort population by lower fitness, to generate new elite
-
-        // display progress
-        if (i % 50 == 1)
-        {
-            // print current best individual
-            printf("Fitness: %f\n", population[0].distance);
-
-            // sanity check
-            if (!valid(population[0].tour, nCities))
+            #pragma omp single
             {
-                printf("ERROR: tour is not a valid permutation of cities");
-                exit(1);
+                mergeSort(population, popSize);                // sort population by lower fitness, to generate new elite
+
+                // display progress
+                if (i % 50 == 1)
+                {
+                    // print current best individual
+                    printf("Fitness: %f\n", population[0].distance);
+
+                    // sanity check
+                    if (!valid(population[0].tour, nCities))
+                    {
+                        printf("ERROR: tour is not a valid permutation of cities");
+                        exit(1);
+                    }
+                }
             }
         }
     }
