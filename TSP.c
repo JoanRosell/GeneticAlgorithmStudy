@@ -118,10 +118,10 @@ int main(int argc, char** argv)
                     aMutateVector[m] = myRandom() % nCities;
                     bMutateVector[m] = myRandom() % nCities;
                 }
-
-                // copy elite population to new generation
-                copyPopulation(population, tmpPopulation, eliteSize, nCities);
             }
+
+            // copy elite population to new generation
+            copyPopulation(population, tmpPopulation, eliteSize, nCities);
 
             // mate(population, eliteSize, tmpPopulation + eliteSize, popSize - eliteSize, nCities); // mate from elite
             #pragma omp for schedule(static)
@@ -168,7 +168,6 @@ int main(int argc, char** argv)
                 popToMutate[m].tour[bPos] = cityA;
             }
 
-            #pragma omp single
             copyPopulation(tmpPopulation, population, popSize, nCities);
 
             // computeFitness(population, popSize, cities, nCities);
@@ -192,7 +191,8 @@ int main(int argc, char** argv)
 
             #pragma omp single
             {
-                mergeSort(population, popSize);                // sort population by lower fitness, to generate new elite
+                // sort population by lower fitness, to generate new elite
+                mergeSort(population, popSize);
 
                 // display progress
                 if (i % 50 == 1)
@@ -386,6 +386,7 @@ void merge(Chromosome* a, size_t aSize, Chromosome* b, size_t bSize, Chromosome*
 // copy input population to output population
 void copyPopulation(Chromosome* in, Chromosome* out, size_t popSize, size_t nCities)
 {
+    #pragma omp for schedule(static)
     for (size_t i = 0; i < popSize; i++)
     {
         memcpy(out[i].tour, in[i].tour, nCities * sizeof(*out[i].tour));
