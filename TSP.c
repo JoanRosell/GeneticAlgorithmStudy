@@ -90,41 +90,45 @@ int main(int argc, char** argv)
     mergeSort(population, popSize);
     size_t outSize = popSize - eliteSize;
     // generate new populations from initial population
+    Chromosome* tmpPop = malloc((popSize - eliteSize) * sizeof(*population));
+    initPopulation(tmpPop, popSize - eliteSize, nCities);
+    size_t aMateVector[outSize];
+    size_t bMateVector[outSize];
+    size_t cMateVector[outSize];
+    size_t aMutateVector[outSize];
+    size_t bMutateVector[outSize];
+
+    #pragma omp parallel
     for (size_t e = 0; e < epochs; e++)
-    {                          // copy elite population to new generation
-        size_t aMateVector[outSize];
-        size_t bMateVector[outSize];
-        size_t cMateVector[outSize];
-        size_t aMutateVector[outSize];
-        size_t bMutateVector[outSize];
-
-        for (size_t m = 0; m < outSize; m++)
+    {
+        #pragma omp single
         {
-            aMateVector[m] = myRandom() % eliteSize;
-            bMateVector[m] = myRandom() % eliteSize;
-            cMateVector[m] = myRandom() % nCities;
-        }
+            for (size_t m = 0; m < outSize; m++)
+            {
+                aMateVector[m] = myRandom() % eliteSize;
+                bMateVector[m] = myRandom() % eliteSize;
+                cMateVector[m] = myRandom() % nCities;
+            }
 
-        for (size_t m = 0; m < outSize; m++)
-        {
-            aMutateVector[m] = myRandom() % nCities;
-            bMutateVector[m] = myRandom() % nCities;
+            for (size_t m = 0; m < outSize; m++)
+            {
+                aMutateVector[m] = myRandom() % nCities;
+                bMutateVector[m] = myRandom() % nCities;
+            }
         }
-        // Declare local mask
-        tag_t mask[nCities];
-        memset(mask, 0xFF, nCities * sizeof(*mask));
 
         // mate the elite population to generate new genes
+        #pragma omp for schedule(static)
         for (size_t m = 0; m < outSize; m++)
         {
-            // Create new gene in Output population by mating to genes from the elite input population
-            // select two random genes from elite population and mate them at random position pos
+            tag_t mask[nCities];
+            memset(mask, 0xFF, nCities * sizeof(*mask));
             size_t i1 = aMateVector[m];
             size_t i2 = bMateVector[m];
             size_t pos = cMateVector[m];
             const tag_t* parentA = population[i1].tour;
             const tag_t* parentB = population[i2].tour;
-            tag_t* child = malloc(nCities * sizeof(*child));
+            tag_t child[nCities];
 
             // Copy first part of parent A to child
             memcpy(child, parentA, pos * sizeof(*child));
@@ -149,27 +153,30 @@ int main(int argc, char** argv)
             child[aPos] = child[bPos];
             child[bPos] = cityA;
 
-            free(population[m + eliteSize].tour);
-            population[m + eliteSize].tour = child;
+            memcpy(tmpPop[m].tour, child, nCities * sizeof(*child));
 
             memset(mask, 0xFF, nCities * sizeof(*mask));
         }
+
+        copyPopulation(tmpPop, population + eliteSize, popSize - eliteSize, nCities);
         computeFitness(population, popSize, cities, nCities);
-        mergeSort(population, popSize);                // sort population by lower fitness, to generate new elite
-
-        // display progress
-        if (e % 50 == 1)
+        #pragma omp single
         {
-            // print current best individual
-            printf("Fitness: %f\n", population[0].distance);
+            mergeSort(population, popSize);                // sort population by lower fitness, to generate new elite
 
-            // sanity check
-            if (!valid(population[0].tour, nCities))
-            {
-                printf("ERROR: tour is not a valid permutation of cities");
-                exit(1);
+            // display progress
+            if (e % 50 == 1) {
+                // print current best individual
+                printf("Fitness: %f\n", population[0].distance);
+
+                // sanity check
+                if (!valid(population[0].tour, nCities)) {
+                    printf("ERROR: tour is not a valid permutation of cities");
+                    exit(1);
+                }
             }
         }
+
     }
 
     // print final result
@@ -233,6 +240,7 @@ void mutate(Chromosome* population, size_t popSize, size_t nCities)
 //  Calculate each individual fitness in population. Fitness is path distance
 void computeFitness(Chromosome* population, size_t popSize, Point* cities, size_t nCities)
 {
+    #pragma omp for schedule(static)
     for (size_t i = 0; i < popSize; i++)
     {
         population[i].distance = computePathDistance(cities, nCities, population[i].tour);
@@ -337,6 +345,7 @@ void merge(Chromosome* a, size_t aSize, Chromosome* b, size_t bSize, Chromosome*
 // copy input population to output population
 void copyPopulation(Chromosome* in, Chromosome* out, size_t popSize, size_t nCities)
 {
+    #pragma omp for schedule(static)
     for (size_t i = 0; i < popSize; i++)
     {
         for (size_t j = 0; j < nCities; j++)
