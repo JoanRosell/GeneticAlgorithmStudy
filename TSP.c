@@ -72,10 +72,8 @@ int main(int argc, char** argv)
 
     size_t eliteSize = popSize * elitism;
     Point* cities = malloc(nCities * sizeof(*cities));
-    int*   mask = malloc(nCities * sizeof(*mask));
 
     Chromosome* population = malloc(popSize * sizeof(*population));
-    Chromosome* tmpPopulation = malloc((popSize - eliteSize) * sizeof(*tmpPopulation));
 
     printf("Find shortest path for %ld cities. %ld Epochs. population Size: %ld\n", nCities, epochs, popSize);
 
@@ -90,21 +88,77 @@ int main(int argc, char** argv)
     // compute fitness and sort population by lower fitness, to generate elite
     computeFitness(population, popSize, cities, nCities);
     mergeSort(population, popSize);
-
+    size_t outSize = popSize - eliteSize;
     // generate new populations from initial population
-    for (size_t i = 0; i < epochs; i++)
+    for (size_t e = 0; e < epochs; e++)
     {                          // copy elite population to new generation
-        /*mate(population, eliteSize, tmpPopulation, popSize - eliteSize, nCities); // mate from elite
-        mutate(tmpPopulation + eliteSize, popSize - eliteSize, nCities);                            // do not affect elite
-        copyPopulation(tmpPopulation, population, popSize, nCities);*/
-        mate_mutate(population, eliteSize, tmpPopulation, popSize - eliteSize, nCities, cities);
-        //copyPopulation(tmpPopulation, population + eliteSize, popSize - eliteSize, nCities);
-        //computeFitness(tmpPopulation, popSize - eliteSize, cities, nCities);
-        // TODO: use two heaps to merge the elite and stop early the computeFitness process
+        size_t aMateVector[outSize];
+        size_t bMateVector[outSize];
+        size_t cMateVector[outSize];
+        size_t aMutateVector[outSize];
+        size_t bMutateVector[outSize];
+
+        for (size_t m = 0; m < outSize; m++)
+        {
+            aMateVector[m] = myRandom() % eliteSize;
+            bMateVector[m] = myRandom() % eliteSize;
+            cMateVector[m] = myRandom() % nCities;
+        }
+
+        for (size_t m = 0; m < outSize; m++)
+        {
+            aMutateVector[m] = myRandom() % nCities;
+            bMutateVector[m] = myRandom() % nCities;
+        }
+        // Declare local mask
+        tag_t mask[nCities];
+        memset(mask, 0xFF, nCities * sizeof(*mask));
+
+        // mate the elite population to generate new genes
+        for (size_t m = 0; m < outSize; m++)
+        {
+            // Create new gene in Output population by mating to genes from the elite input population
+            // select two random genes from elite population and mate them at random position pos
+            size_t i1 = aMateVector[m];
+            size_t i2 = bMateVector[m];
+            size_t pos = cMateVector[m];
+            const tag_t* parentA = population[i1].tour;
+            const tag_t* parentB = population[i2].tour;
+            tag_t* child = malloc(nCities * sizeof(*child));
+
+            // Copy first part of parent A to child
+            memcpy(child, parentA, pos * sizeof(*child));
+
+            for (size_t i = 0; i < pos; i++)
+            {
+                mask[parentA[i]] = 0;
+            }
+
+            size_t k = pos;
+            for (size_t i = 0; i < nCities; ++i)
+            {
+                tag_t tmp = mask[parentB[i]];
+                child[k] = (parentB[i] & tmp) | (child[k] & ~tmp);
+                k += tmp & 1;
+            }
+
+            // Mutate recently generated child
+            size_t aPos = aMutateVector[m];
+            size_t bPos = bMutateVector[m];
+            tag_t cityA = child[aPos];
+            child[aPos] = child[bPos];
+            child[bPos] = cityA;
+
+            free(population[m + eliteSize].tour);
+            population[m + eliteSize].tour = child;
+
+            memset(mask, 0xFF, nCities * sizeof(*mask));
+        }
+        computeFitness(population, popSize, cities, nCities);
         mergeSort(population, popSize);                // sort population by lower fitness, to generate new elite
 
         // display progress
-        if (i % 50 == 1)
+        if (e % 50 == 1)
         {
             // print current best individual
             printf("Fitness: %f\n", population[0].distance);
@@ -131,13 +185,10 @@ int main(int argc, char** argv)
     for (size_t i = 0; i < popSize; ++i)
     {
         free(population[i].tour);
-        free(tmpPopulation[i].tour);
     }
 
-    free(mask);
     free(cities);
     free(population);
-    free(tmpPopulation);
 
     return(0);
 }
