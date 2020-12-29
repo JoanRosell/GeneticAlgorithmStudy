@@ -44,9 +44,6 @@ float computePathDistance(Point* cities, size_t nCities, const tag_t *path);
 float distance(Point a, Point b);
 void mergeSort(Chromosome* in, size_t size);
 void merge(Chromosome* a, size_t aSize, Chromosome* b, size_t bSize, Chromosome* c);
-void copyPopulation(Chromosome* in, Chromosome* out, size_t popSize, size_t nCities);
-void mate(Chromosome *in, size_t inSize, Chromosome *out, size_t outSize, size_t nCities);
-void mate_mutate(Chromosome *in, size_t inSize, Chromosome *out, size_t outSize, size_t nCities, Point *cities);
 int valid(const tag_t *in, size_t nCities);
 void printPath(tag_t *path, Point* cities, size_t nCities);
 
@@ -85,20 +82,19 @@ int main(int argc, char** argv)
     {
         mutate(population, popSize, nCities);
     }
+
     // compute fitness and sort population by lower fitness, to generate elite
     computeFitness(population, popSize, cities, nCities);
     mergeSort(population, popSize);
     size_t outSize = popSize - eliteSize;
-    // generate new populations from initial population
-    Chromosome* tmpPop = malloc((popSize - eliteSize) * sizeof(*population));
-    initPopulation(tmpPop, popSize - eliteSize, nCities);
+
     size_t aMateVector[outSize];
     size_t bMateVector[outSize];
     size_t cMateVector[outSize];
     size_t aMutateVector[outSize];
     size_t bMutateVector[outSize];
 
-    #pragma omp parallel
+    #pragma omp parallel num_threads(4)
     for (size_t e = 0; e < epochs; e++)
     {
         #pragma omp single
@@ -154,11 +150,9 @@ int main(int argc, char** argv)
             child[bPos] = cityA;
 
             memcpy(population[m + eliteSize].tour, child, nCities * sizeof(*child));
-
             memset(mask, 0xFF, nCities * sizeof(*mask));
         }
 
-        //copyPopulation(tmpPop, population + eliteSize, popSize - eliteSize, nCities);
         computeFitness(population, popSize, cities, nCities);
         #pragma omp single
         {
@@ -194,12 +188,9 @@ int main(int argc, char** argv)
         free(population[i].tour);
     }
 
-    for (size_t i = 0; i < popSize - eliteSize; ++i)
-        free(tmpPop[i].tour);
 
     free(cities);
     free(population);
-    free(tmpPop);
 
     return(0);
 }
@@ -343,122 +334,6 @@ void merge(Chromosome* a, size_t aSize, Chromosome* b, size_t bSize, Chromosome*
             c[i + j] = b[j];             // copy full struct
             j++;
         }
-    }
-}
-
-// copy input population to output population
-void copyPopulation(Chromosome* in, Chromosome* out, size_t popSize, size_t nCities)
-{
-    #pragma omp for schedule(static)
-    for (size_t i = 0; i < popSize; i++)
-    {
-        for (size_t j = 0; j < nCities; j++)
-        {
-            out[i].tour[j] = in[i].tour[j];
-        }
-    }
-}
-
-// mate randomly the elite population in in into P_out
-void mate(Chromosome *in, size_t inSize, Chromosome *out, size_t outSize, size_t nCities)
-{
-    // Declare local mask
-    tag_t mask[nCities];
-    memset(mask, 0xFF, nCities * sizeof(*mask));
-
-    // mate the elite population to generate new genes
-    for (size_t m = 0; m < outSize; m++)
-    {
-        // Create new gene in Output population by mating to genes from the elite input population
-        // select two random genes from elite population and mate them at random position pos
-        size_t i1 = myRandom() % inSize;
-        size_t i2 = myRandom() % inSize;
-        size_t pos = myRandom() % nCities;
-        const tag_t* parentA = in[i1].tour;
-        const tag_t* parentB = in[i2].tour;
-        tag_t* child = out[m].tour;
-
-        // Copy first part of parent A to child
-        memcpy(child, parentA, pos * sizeof(*child));
-
-        for (size_t i = 0; i < pos; i++)
-        {
-            mask[parentA[i]] = 0;
-        }
-
-        size_t k = pos;
-        for (size_t i = 0; i < nCities; ++i)
-        {
-            tag_t tmp = mask[parentB[i]];
-            child[k] = (parentB[i] & tmp) | (child[k] & ~tmp);
-            k += tmp & 1;
-        }
-
-        memset(mask, 0xFF, nCities * sizeof(*mask));
-    }
-}
-
-void mate_mutate(Chromosome *in, size_t inSize, Chromosome *out, size_t outSize, size_t nCities, Point *cities)
-{
-    size_t aMateVector[outSize];
-    size_t bMateVector[outSize];
-    size_t cMateVector[outSize];
-    size_t aMutateVector[outSize];
-    size_t bMutateVector[outSize];
-
-    for (size_t m = 0; m < outSize; m++)
-    {
-        aMateVector[m] = myRandom() % inSize;
-        bMateVector[m] = myRandom() % inSize;
-        cMateVector[m] = myRandom() % nCities;
-    }
-
-    for (size_t m = 0; m < outSize; m++)
-    {
-        aMutateVector[m] = myRandom() % nCities;
-        bMutateVector[m] = myRandom() % nCities;
-    }
-    // Declare local mask
-    tag_t mask[nCities];
-    memset(mask, 0xFF, nCities * sizeof(*mask));
-
-    // mate the elite population to generate new genes
-    for (size_t m = 0; m < outSize; m++)
-    {
-        // Create new gene in Output population by mating to genes from the elite input population
-        // select two random genes from elite population and mate them at random position pos
-        size_t i1 = aMateVector[m];
-        size_t i2 = bMateVector[m];
-        size_t pos = cMateVector[m];
-        const tag_t* parentA = in[i1].tour;
-        const tag_t* parentB = in[i2].tour;
-        tag_t* child = malloc(nCities * sizeof(*child));
-
-        // Copy first part of parent A to child
-        memcpy(child, parentA, pos * sizeof(*child));
-
-        for (size_t i = 0; i < pos; i++)
-        {
-            mask[parentA[i]] = 0;
-        }
-
-        size_t k = pos;
-        for (size_t i = 0; i < nCities; ++i)
-        {
-            tag_t tmp = mask[parentB[i]];
-            child[k] = (parentB[i] & tmp) | (child[k] & ~tmp);
-            k += tmp & 1;
-        }
-
-        // Mutate recently generated child
-        size_t aPos = aMutateVector[m];
-        size_t bPos = bMutateVector[m];
-        int cityA = child[aPos];
-        child[aPos] = child[bPos];
-        child[bPos] = cityA;
-        out[m].tour = child;
-
-        memset(mask, 0xFF, nCities * sizeof(*mask));
     }
 }
 
