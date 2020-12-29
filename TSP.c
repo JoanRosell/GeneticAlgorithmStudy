@@ -153,12 +153,12 @@ int main(int argc, char** argv)
             child[aPos] = child[bPos];
             child[bPos] = cityA;
 
-            memcpy(tmpPop[m].tour, child, nCities * sizeof(*child));
+            memcpy(population[m + eliteSize].tour, child, nCities * sizeof(*child));
 
             memset(mask, 0xFF, nCities * sizeof(*mask));
         }
 
-        copyPopulation(tmpPop, population + eliteSize, popSize - eliteSize, nCities);
+        //copyPopulation(tmpPop, population + eliteSize, popSize - eliteSize, nCities);
         computeFitness(population, popSize, cities, nCities);
         #pragma omp single
         {
