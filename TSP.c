@@ -194,8 +194,12 @@ int main(int argc, char** argv)
         free(population[i].tour);
     }
 
+    for (size_t i = 0; i < popSize - eliteSize; ++i)
+        free(tmpPop[i].tour);
+
     free(cities);
     free(population);
+    free(tmpPop);
 
     return(0);
 }
