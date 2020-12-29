@@ -46,6 +46,7 @@ void mergeSort(Chromosome* in, size_t size);
 void merge(Chromosome* a, size_t aSize, Chromosome* b, size_t bSize, Chromosome* c);
 void copyPopulation(Chromosome* in, Chromosome* out, size_t popSize, size_t nCities);
 void mate(Chromosome *in, size_t inSize, Chromosome *out, size_t outSize, size_t nCities);
+void mate_mutate(Chromosome *in, size_t inSize, Chromosome *out, size_t outSize, size_t nCities, Point *cities);
 int valid(const tag_t *in, size_t nCities);
 void printPath(tag_t *path, Point* cities, size_t nCities);
 
@@ -70,24 +71,17 @@ int main(int argc, char** argv)
     }
 
     size_t eliteSize = popSize * elitism;
-    // Array containing the positions of the cities
     Point* cities = malloc(nCities * sizeof(*cities));
-
-    // Helping structure to account for cities that has been already visited
-    int*   mask = malloc(nCities * sizeof(*mask)); // TODO: Change type to char
+    int*   mask = malloc(nCities * sizeof(*mask));
 
     Chromosome* population = malloc(popSize * sizeof(*population));
-    Chromosome* tmpPopulation = malloc(popSize * sizeof(*tmpPopulation));
+    Chromosome* tmpPopulation = malloc((popSize - eliteSize) * sizeof(*tmpPopulation));
 
     printf("Find shortest path for %ld cities. %ld Epochs. population Size: %ld\n", nCities, epochs, popSize);
-    printf("Size of Chromosome: %lu bytes\n", sizeof(Chromosome));
-    printf("Size of city vector: %lu bytes\n", sizeof(Point) * nCities);
-    printf("Size of a permutation: %ld bytes\n", sizeof(tag_t) * nCities);
-    printf("Population memory footprint: %ld bytes\n", popSize * (sizeof(Chromosome) + sizeof(tag_t) * nCities));
 
     generateCities(cities, nCities); // generate random cities and initialize genetic population
     initPopulation(population, popSize, nCities);
-    initPopulation(tmpPopulation, popSize, nCities);
+
     // generate random mutations into initial population
     for (size_t i = 0; i < 10; i++)
     {
@@ -99,13 +93,14 @@ int main(int argc, char** argv)
 
     // generate new populations from initial population
     for (size_t i = 0; i < epochs; i++)
-    {
-        // Generate Random numbers to feed the epoch
-        copyPopulation(population, tmpPopulation, eliteSize, nCities);                             // copy elite population to new generation
-        mate(population, eliteSize, tmpPopulation + eliteSize, popSize - eliteSize, nCities); // mate from elite
+    {                          // copy elite population to new generation
+        /*mate(population, eliteSize, tmpPopulation, popSize - eliteSize, nCities); // mate from elite
         mutate(tmpPopulation + eliteSize, popSize - eliteSize, nCities);                            // do not affect elite
-        copyPopulation(tmpPopulation, population, popSize, nCities);
-        computeFitness(population, popSize, cities, nCities);
+        copyPopulation(tmpPopulation, population, popSize, nCities);*/
+        mate_mutate(population, eliteSize, tmpPopulation, popSize - eliteSize, nCities, cities);
+        //copyPopulation(tmpPopulation, population + eliteSize, popSize - eliteSize, nCities);
+        //computeFitness(tmpPopulation, popSize - eliteSize, cities, nCities);
+        // TODO: use two heaps to merge the elite and stop early the computeFitness process
         mergeSort(population, popSize);                // sort population by lower fitness, to generate new elite
 
         // display progress
@@ -334,6 +329,70 @@ void mate(Chromosome *in, size_t inSize, Chromosome *out, size_t outSize, size_t
             child[k] = (parentB[i] & tmp) | (child[k] & ~tmp);
             k += tmp & 1;
         }
+
+        memset(mask, 0xFF, nCities * sizeof(*mask));
+    }
+}
+
+void mate_mutate(Chromosome *in, size_t inSize, Chromosome *out, size_t outSize, size_t nCities, Point *cities)
+{
+    size_t aMateVector[outSize];
+    size_t bMateVector[outSize];
+    size_t cMateVector[outSize];
+    size_t aMutateVector[outSize];
+    size_t bMutateVector[outSize];
+
+    for (size_t m = 0; m < outSize; m++)
+    {
+        aMateVector[m] = myRandom() % inSize;
+        bMateVector[m] = myRandom() % inSize;
+        cMateVector[m] = myRandom() % nCities;
+    }
+
+    for (size_t m = 0; m < outSize; m++)
+    {
+        aMutateVector[m] = myRandom() % nCities;
+        bMutateVector[m] = myRandom() % nCities;
+    }
+    // Declare local mask
+    tag_t mask[nCities];
+    memset(mask, 0xFF, nCities * sizeof(*mask));
+
+    // mate the elite population to generate new genes
+    for (size_t m = 0; m < outSize; m++)
+    {
+        // Create new gene in Output population by mating to genes from the elite input population
+        // select two random genes from elite population and mate them at random position pos
+        size_t i1 = aMateVector[m];
+        size_t i2 = bMateVector[m];
+        size_t pos = cMateVector[m];
+        const tag_t* parentA = in[i1].tour;
+        const tag_t* parentB = in[i2].tour;
+        tag_t* child = malloc(nCities * sizeof(*child));
+
+        // Copy first part of parent A to child
+        memcpy(child, parentA, pos * sizeof(*child));
+
+        for (size_t i = 0; i < pos; i++)
+        {
+            mask[parentA[i]] = 0;
+        }
+
+        size_t k = pos;
+        for (size_t i = 0; i < nCities; ++i)
+        {
+            tag_t tmp = mask[parentB[i]];
+            child[k] = (parentB[i] & tmp) | (child[k] & ~tmp);
+            k += tmp & 1;
+        }
+
+        // Mutate recently generated child
+        size_t aPos = aMutateVector[m];
+        size_t bPos = bMutateVector[m];
+        int cityA = child[aPos];
+        child[aPos] = child[bPos];
+        child[bPos] = cityA;
+        out[m].tour = child;
 
         memset(mask, 0xFF, nCities * sizeof(*mask));
     }
