@@ -35,6 +35,13 @@ int myRandom()
     return(seed >> 13);
 }
 
+int comp(const void* lhs, const void* rhs)
+{
+    Chromosome a = *((Chromosome* ) lhs);
+    Chromosome b = *((Chromosome* ) rhs);
+    return (a.distance > b.distance) - (a.distance < b.distance);
+}
+
 // Function definitions
 void generateCities(Point* cities, size_t nCities);
 void initPopulation(Chromosome* population, size_t popSize, size_t nCities);
@@ -55,7 +62,6 @@ int main(int argc, char** argv)
     size_t    popSize = 40000;
     double elitism = 0.1;
     seed = 12345;
-
     // obtain parameters at run time
     switch (argc)
     {
@@ -92,7 +98,7 @@ int main(int argc, char** argv)
     tag_t cMateVector[outSize];
     uint16_t abMutateVector[outSize];
 
-    //#pragma omp parallel num_threads(4)
+    #pragma omp parallel num_threads(8)
     for (size_t e = 0; e < epochs; e++)
     {
         #pragma omp single
@@ -114,7 +120,7 @@ int main(int argc, char** argv)
         }
 
         // mate the elite population to generate new genes
-        #pragma omp for schedule(static)
+        #pragma omp for schedule(dynamic)
         for (size_t m = 0; m < outSize; m++)
         {
             tag_t mask[nCities];
@@ -156,8 +162,8 @@ int main(int argc, char** argv)
         computeFitness(population, popSize, cities, nCities);
         #pragma omp single
         {
-            mergeSort(population, popSize);                // sort population by lower fitness, to generate new elite
-
+            //mergeSort(population, popSize);                // sort population by lower fitness, to generate new elite
+            qsort(population, popSize, sizeof(*population), comp);
             // display progress
             if (e % 50 == 1) {
                 // print current best individual
@@ -306,9 +312,11 @@ void mergeSort(Chromosome* in, size_t size)
     }
 
     // recursive calls
+    #pragma omp task
     mergeSort(firstH, n1);
+    #pragma omp task
     mergeSort(secondH, n2);
-
+    #pragma omp taskwait
     // merge
     merge(firstH, n1, secondH, n2, in);
 
