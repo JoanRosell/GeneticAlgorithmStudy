@@ -88,28 +88,28 @@ int main(int argc, char** argv)
     mergeSort(population, popSize);
     size_t outSize = popSize - eliteSize;
 
-    uint16_t aMateVector[outSize];
-    uint16_t bMateVector[outSize];
+    uint32_t abMateVector[outSize];
     tag_t cMateVector[outSize];
-    tag_t aMutateVector[outSize];
-    tag_t bMutateVector[outSize];
+    uint16_t abMutateVector[outSize];
 
-    #pragma omp parallel num_threads(4)
+    //#pragma omp parallel num_threads(4)
     for (size_t e = 0; e < epochs; e++)
     {
         #pragma omp single
         {
             for (size_t m = 0; m < outSize; m++)
             {
-                aMateVector[m] = myRandom() % eliteSize;
-                bMateVector[m] = myRandom() % eliteSize;
+                uint16_t a = myRandom() % eliteSize;
+                uint16_t b = myRandom() % eliteSize;
+                abMateVector[m] = ((uint32_t) a << 16) + b;
                 cMateVector[m] = myRandom() % nCities;
             }
 
             for (size_t m = 0; m < outSize; m++)
             {
-                aMutateVector[m] = myRandom() % nCities;
-                bMutateVector[m] = myRandom() % nCities;
+                tag_t a = myRandom() % nCities;
+                tag_t b = myRandom() % nCities;
+                abMutateVector[m] = ((uint16_t) a << 8) + b;
             }
         }
 
@@ -119,9 +119,9 @@ int main(int argc, char** argv)
         {
             tag_t mask[nCities];
             memset(mask, 0xFF, nCities * sizeof(*mask));
-            size_t i1 = aMateVector[m];
-            size_t i2 = bMateVector[m];
-            size_t pos = cMateVector[m];
+            uint16_t i1 = (uint16_t) (abMateVector[m] >> 16);
+            uint16_t i2 = (uint16_t) abMateVector[m];
+            tag_t pos = cMateVector[m];
             const tag_t* parentA = population[i1].tour;
             const tag_t* parentB = population[i2].tour;
             tag_t child[nCities];
@@ -143,8 +143,8 @@ int main(int argc, char** argv)
             }
 
             // Mutate recently generated child
-            size_t aPos = aMutateVector[m];
-            size_t bPos = bMutateVector[m];
+            tag_t aPos = (tag_t) (abMutateVector[m] >> 8);
+            tag_t bPos = (tag_t) abMutateVector[m];
             tag_t cityA = child[aPos];
             child[aPos] = child[bPos];
             child[bPos] = cityA;
