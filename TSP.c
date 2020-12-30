@@ -88,11 +88,11 @@ int main(int argc, char** argv)
     mergeSort(population, popSize);
     size_t outSize = popSize - eliteSize;
 
-    size_t aMateVector[outSize];
-    size_t bMateVector[outSize];
-    size_t cMateVector[outSize];
-    size_t aMutateVector[outSize];
-    size_t bMutateVector[outSize];
+    uint16_t aMateVector[outSize];
+    uint16_t bMateVector[outSize];
+    tag_t cMateVector[outSize];
+    tag_t aMutateVector[outSize];
+    tag_t bMutateVector[outSize];
 
     #pragma omp parallel num_threads(4)
     for (size_t e = 0; e < epochs; e++)
