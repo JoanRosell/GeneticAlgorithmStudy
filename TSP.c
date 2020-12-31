@@ -8,6 +8,8 @@
 #include <stdint.h>
 #include <math.h>
 #include <string.h>
+#include <limits.h>
+#include <float.h>
 
 // Variable used to generate pseudo-random numbers
 unsigned int seed;
@@ -54,6 +56,16 @@ void merge(Chromosome* a, size_t aSize, Chromosome* b, size_t bSize, Chromosome*
 int valid(const tag_t *in, size_t nCities);
 void printPath(tag_t *path, Point* cities, size_t nCities);
 
+void swapChromosomes(Chromosome* a, Chromosome* b)
+{
+    float tmpDistance = a->distance;
+    a->distance = b->distance;
+    b->distance = tmpDistance;
+
+    tag_t* tmpTour = a->tour;
+    a->tour = b->tour;
+    b->tour = tmpTour;
+}
 
 int main(int argc, char** argv)
 {
@@ -97,7 +109,8 @@ int main(int argc, char** argv)
     uint32_t abMateVector[outSize];
     tag_t cMateVector[outSize];
     uint16_t abMutateVector[outSize];
-
+    Chromosome* candidates = population + eliteSize;
+    size_t lastSwap;
     #pragma omp parallel num_threads(8)
     for (size_t e = 0; e < epochs; e++)
     {
@@ -159,12 +172,24 @@ int main(int argc, char** argv)
             memset(mask, 0xFF, nCities * sizeof(*mask));
         }
 
-        computeFitness(population, popSize, cities, nCities);
+        computeFitness(population + eliteSize, popSize - eliteSize, cities, nCities);
+
         #pragma omp single
         {
-            //mergeSort(population, popSize);                // sort population by lower fitness, to generate new elite
-            qsort(population, popSize, sizeof(*population), comp);
-            // display progress
+            float worstEliteScore = population[eliteSize - 1].distance;
+            size_t j = 0;
+
+            for (size_t i = 0; i < outSize; i++)
+            {
+                while (candidates[j].distance >= worstEliteScore) j++;
+                if (j == outSize) break;
+                swapChromosomes(&candidates[i], &candidates[j]);
+                j++;
+                lastSwap = i + 1;
+            }
+
+            mergeSort(population, eliteSize + lastSwap);
+
             if (e % 50 == 1) {
                 // print current best individual
                 printf("Fitness: %f\n", population[0].distance);
@@ -176,7 +201,6 @@ int main(int argc, char** argv)
                 }
             }
         }
-
     }
 
     // print final result
@@ -283,15 +307,10 @@ void mergeSort(Chromosome* in, size_t size)
     {
         return;         // the array is sorted when n=1
     }
-    if (size == 2)
+    if (size <= 512)
     {
-        if (in[0].distance > in[1].distance)
-        {         // swap values of A[0] and A[1]
-            Chromosome temp = in[1];
-            in[1] = in[0];
-            in[0] = temp;
-        }
-        return;         // elements sorted
+        qsort(in, size, sizeof(*in), comp);
+        return;
     }
 
     // divide A into two arrays, A1 and A2
