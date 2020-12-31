@@ -111,27 +111,24 @@ int main(int argc, char** argv)
     uint16_t abMutateVector[outSize];
     Chromosome* candidates = population + eliteSize;
     size_t lastSwap;
+    for (size_t m = 0; m < outSize; m++)
+    {
+        uint16_t a = myRandom() % eliteSize;
+        uint16_t b = myRandom() % eliteSize;
+        abMateVector[m] = ((uint32_t) a << 16) + b;
+        cMateVector[m] = myRandom() % nCities;
+    }
+
+    for (size_t m = 0; m < outSize; m++)
+    {
+        tag_t a = myRandom() % nCities;
+        tag_t b = myRandom() % nCities;
+        abMutateVector[m] = ((uint16_t) a << 8) + b;
+    }
+
     #pragma omp parallel num_threads(8)
     for (size_t e = 0; e < epochs; e++)
     {
-        #pragma omp single
-        {
-            for (size_t m = 0; m < outSize; m++)
-            {
-                uint16_t a = myRandom() % eliteSize;
-                uint16_t b = myRandom() % eliteSize;
-                abMateVector[m] = ((uint32_t) a << 16) + b;
-                cMateVector[m] = myRandom() % nCities;
-            }
-
-            for (size_t m = 0; m < outSize; m++)
-            {
-                tag_t a = myRandom() % nCities;
-                tag_t b = myRandom() % nCities;
-                abMutateVector[m] = ((uint16_t) a << 8) + b;
-            }
-        }
-
         // mate the elite population to generate new genes
         #pragma omp for schedule(dynamic)
         for (size_t m = 0; m < outSize; m++)
@@ -176,6 +173,22 @@ int main(int argc, char** argv)
 
         #pragma omp single
         {
+            #pragma omp task
+            {
+                for (size_t m = 0; m < outSize; m++) {
+                    uint16_t a = myRandom() % eliteSize;
+                    uint16_t b = myRandom() % eliteSize;
+                    abMateVector[m] = ((uint32_t) a << 16) + b;
+                    cMateVector[m] = myRandom() % nCities;
+                }
+
+                for (size_t m = 0; m < outSize; m++) {
+                    tag_t a = myRandom() % nCities;
+                    tag_t b = myRandom() % nCities;
+                    abMutateVector[m] = ((uint16_t) a << 8) + b;
+                }
+            }
+
             float worstEliteScore = population[eliteSize - 1].distance;
             size_t j = 0;
 
